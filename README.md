@@ -65,6 +65,7 @@ Copy
 Edit
 cd server
 npm install
+
 3. Set up AWS Credentials
 Ensure your AWS credentials are set up correctly:
 
@@ -85,6 +86,7 @@ npm start  # For the backend
 
 cd client
 npm start  # For the frontend
+
 5. Upload an Image
 Once the application is running, go to the frontend, select a product category (cosmetics, food, personal care), and upload an image of a product label. The image will be processed, and the safety grading of ingredients will be displayed, along with the interactive graphs.
 
