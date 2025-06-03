@@ -9,6 +9,8 @@ function ImageUpload({ category, onClose }) {
   const [uploadMessage, setUploadMessage] = useState('');
   const [gradedIngredients, setGradedIngredients] = useState([]);
   const [showResults, setShowResults] = useState(false);
+  const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+
 
   // Prevent body scrolling when results are shown
   useEffect(() => {
@@ -38,7 +40,8 @@ function ImageUpload({ category, onClose }) {
     const formData = new FormData();
     formData.append('image', file);
     try {
-      const res = await axios.post(`http://localhost:5000/upload?category=${category}`, formData, {
+      const res = await axios.post(`${BACKEND_URL}/upload?category=${category}`, formData, {
+
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       const { filename, gradedIngredients } = res.data;
