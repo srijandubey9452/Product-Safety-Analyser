@@ -10,7 +10,11 @@ const { gradeIngredients } = require('./gradeutil');
 require('dotenv').config();
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: 'https://product-safety-analyser.vercel.app', // ✅ your frontend Vercel domain
+  credentials: true
+}));
+
 
 // Multer config: Store uploaded file in memory
 const storage = multer.memoryStorage();
