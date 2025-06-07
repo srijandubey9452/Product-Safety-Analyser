@@ -11,7 +11,8 @@ require('dotenv').config();
 
 const app = express();
 app.use(cors({
-  origin: 'https://product-safety-analyser.vercel.app', // ✅ your frontend Vercel domain
+  origin: 'https://product-safety-analyser.vercel.app', 
+  methods: ['GET', 'POST'],// ✅ your frontend Vercel domain
   credentials: true
 }));
 
