@@ -9,6 +9,15 @@ const { ImageModel } = require('./db');
 const { gradeIngredients } = require('./gradeutil');
 require('dotenv').config();
 
+console.log('🛠️ Booting server...');
+
+console.log('✅ ENV Loaded:', {
+  MONGO_URI: process.env.MONGO_URI ? '✅' : '❌',
+  AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID ? '✅' : '❌',
+  AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY ? '✅' : '❌',
+});
+
+
 const app = express();
 app.use(cors({
   origin: 'https://product-safety-analyser.vercel.app', 
@@ -28,6 +37,10 @@ const s3Client = new S3Client({
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   },
+});
+
+app.get('/', (req, res) => {
+  res.send('✅ Backend is running!');
 });
 
 // Upload route with OCR + Grading
