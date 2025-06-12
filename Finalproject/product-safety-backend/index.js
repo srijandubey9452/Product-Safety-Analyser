@@ -18,11 +18,20 @@ console.log('✅ ENV Loaded:', {
 });
 
 
-const app = express();
+const cors = require('cors');
+
+// Allow all OPTIONS pre-flight requests and explicitly whitelist Vercel
 app.use(cors({
-  origin: 'https://product-safety-analyser.vercel.app', 
-  methods: ['GET', 'POST'],// ✅ your frontend Vercel domain
-  credentials: true
+  origin: 'https://product-safety-analyser.vercel.app',
+  methods: ['GET', 'POST', 'OPTIONS'],
+  credentials: true,
+}));
+
+// Handle preflight requests manually
+app.options('*', cors({
+  origin: 'https://product-safety-analyser.vercel.app',
+  methods: ['GET', 'POST', 'OPTIONS'],
+  credentials: true,
 }));
 
 
@@ -42,6 +51,12 @@ const s3Client = new S3Client({
 app.get('/', (req, res) => {
   res.send('✅ Backend is running!');
 });
+
+// Test CORS endpoint (Add this anywhere before upload route)
+app.get('/test-cors', (req, res) => {
+  res.json({ message: 'CORS is working!' });
+});
+
 
 // Upload route with OCR + Grading
 app.post('/upload', upload.single('image'), async (req, res) => {
