@@ -1,6 +1,6 @@
 const express = require('express');
 const multer = require('multer');
-const cors = require('cors');
+
 const mongoose = require('mongoose');
 const { S3Client } = require('@aws-sdk/client-s3');
 const { Upload } = require('@aws-sdk/lib-storage');
