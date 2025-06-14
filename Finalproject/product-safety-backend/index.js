@@ -19,21 +19,21 @@ console.log('✅ ENV Loaded:', {
 
 const app = express();
 
-// ✅ Enable parsing JSON body in requests
-app.use(express.json());
-
-// ✅ Proper CORS config — Vercel frontend is explicitly allowed
-const corsOptions = {
+// ✅ CORS configuration for Vercel frontend
+app.use(cors({
   origin: 'https://product-safety-analyser.vercel.app',
   methods: ['GET', 'POST', 'OPTIONS'],
   credentials: true,
-};
-app.use(cors(corsOptions));
+}));
 
-// ✅ Pre-flight handling — recommended in CORS docs
-app.options('*', cors(corsOptions));
+// ✅ Handle OPTIONS requests
+app.options('*', cors({
+  origin: 'https://product-safety-analyser.vercel.app',
+  methods: ['GET', 'POST', 'OPTIONS'],
+  credentials: true,
+}));
 
-// ✅ Multer: file in memory
+// Multer: store uploaded file in memory
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
@@ -51,12 +51,12 @@ app.get('/', (req, res) => {
   res.send('✅ Backend is running!');
 });
 
-// ✅ Test endpoint for CORS
+// ✅ Test CORS endpoint
 app.get('/test-cors', (req, res) => {
   res.json({ message: 'CORS is working!' });
 });
 
-// ✅ Upload + OCR + Grading
+// ✅ Upload route
 app.post('/upload', upload.single('image'), async (req, res) => {
   try {
     const imageKey = 'uploads/' + req.file.originalname;
@@ -74,22 +74,19 @@ app.post('/upload', upload.single('image'), async (req, res) => {
     const result = await s3Upload.done();
     console.log('✅ Uploaded to S3 at:', result.Location);
 
-    // ✅ OCR
     const detectedText = await extractTextFromS3Image('productimages2025', imageKey);
     console.log('🧠 OCR Text:', detectedText);
 
-    // ✅ Grading
     const gradedIngredients = gradeIngredients(detectedText);
     console.log('🥇 Graded Ingredients:', gradedIngredients);
 
-    // ✅ Save to MongoDB
     const imageData = new ImageModel({
       originalFilename: req.file.originalname,
-      imageKey,
+      imageKey: imageKey,
       s3Url: result.Location,
       text: detectedText,
       extractedText: detectedText,
-      gradedIngredients,
+      gradedIngredients: gradedIngredients,
     });
 
     await imageData.save();
@@ -100,7 +97,7 @@ app.post('/upload', upload.single('image'), async (req, res) => {
       filename: imageKey,
       url: result.Location,
       text: detectedText,
-      gradedIngredients,
+      gradedIngredients: gradedIngredients
     });
 
   } catch (err) {
@@ -109,27 +106,18 @@ app.post('/upload', upload.single('image'), async (req, res) => {
   }
 });
 
-// ✅ MongoDB connect and start server
+// ✅ MongoDB + Start server
 const PORT = process.env.PORT || 8080;
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     console.log("✅ MongoDB connected");
-    app.listen(PORT, () => {
+
+    // ✅ Listen on 0.0.0.0 for Railway
+    app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Server running on port ${PORT}`);
     });
   })
   .catch(err => {
     console.error("❌ MongoDB connection error:", err);
   });
-
-/*
-  🔄 Optional: Keep-alive ping to prevent Railway shutdown (every 5 minutes)
-  Uncomment if you want to test this
-*/
-// setInterval(() => {
-//   fetch('https://product-safety-analyser-production.up.railway.app/test-cors')
-//     .then(res => res.json())
-//     .then(data => console.log('🔁 Keep-alive ping OK:', data))
-//     .catch(err => console.error('❌ Keep-alive ping failed:', err));
-// }, 5 * 60 * 1000);
