@@ -17,29 +17,27 @@ console.log('✅ ENV Loaded:', {
   AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY ? '✅' : '❌',
 });
 
-
 const app = express();
 
-// Allow all OPTIONS pre-flight requests and explicitly whitelist Vercel
-app.use(cors({
+// ✅ Enable parsing JSON body in requests
+app.use(express.json());
+
+// ✅ Proper CORS config — Vercel frontend is explicitly allowed
+const corsOptions = {
   origin: 'https://product-safety-analyser.vercel.app',
   methods: ['GET', 'POST', 'OPTIONS'],
   credentials: true,
-}));
+};
+app.use(cors(corsOptions));
 
-// Handle preflight requests manually
-app.options('*', cors({
-  origin: 'https://product-safety-analyser.vercel.app',
-  methods: ['GET', 'POST', 'OPTIONS'],
-  credentials: true,
-}));
+// ✅ Pre-flight handling — recommended in CORS docs
+app.options('*', cors(corsOptions));
 
-
-// Multer config: Store uploaded file in memory
+// ✅ Multer: file in memory
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// AWS S3 client setup
+// ✅ AWS S3 setup
 const s3Client = new S3Client({
   region: 'us-east-1',
   credentials: {
@@ -48,17 +46,17 @@ const s3Client = new S3Client({
   },
 });
 
+// ✅ Root endpoint
 app.get('/', (req, res) => {
   res.send('✅ Backend is running!');
 });
 
-// Test CORS endpoint (Add this anywhere before upload route)
+// ✅ Test endpoint for CORS
 app.get('/test-cors', (req, res) => {
   res.json({ message: 'CORS is working!' });
 });
 
-
-// Upload route with OCR + Grading
+// ✅ Upload + OCR + Grading
 app.post('/upload', upload.single('image'), async (req, res) => {
   try {
     const imageKey = 'uploads/' + req.file.originalname;
@@ -76,22 +74,22 @@ app.post('/upload', upload.single('image'), async (req, res) => {
     const result = await s3Upload.done();
     console.log('✅ Uploaded to S3 at:', result.Location);
 
-    // OCR
+    // ✅ OCR
     const detectedText = await extractTextFromS3Image('productimages2025', imageKey);
     console.log('🧠 OCR Text:', detectedText);
 
-    // Grading
+    // ✅ Grading
     const gradedIngredients = gradeIngredients(detectedText);
     console.log('🥇 Graded Ingredients:', gradedIngredients);
 
-    // Save to MongoDB
+    // ✅ Save to MongoDB
     const imageData = new ImageModel({
       originalFilename: req.file.originalname,
-      imageKey: imageKey,
+      imageKey,
       s3Url: result.Location,
       text: detectedText,
       extractedText: detectedText,
-      gradedIngredients: gradedIngredients,
+      gradedIngredients,
     });
 
     await imageData.save();
@@ -102,7 +100,7 @@ app.post('/upload', upload.single('image'), async (req, res) => {
       filename: imageKey,
       url: result.Location,
       text: detectedText,
-      gradedIngredients: gradedIngredients
+      gradedIngredients,
     });
 
   } catch (err) {
@@ -111,17 +109,27 @@ app.post('/upload', upload.single('image'), async (req, res) => {
   }
 });
 
-// MongoDB connect and start server
-const PORT = process.env.PORT || 5000;
+// ✅ MongoDB connect and start server
+const PORT = process.env.PORT || 8080;
 
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-}).then(() => {
-  console.log("✅ MongoDB connected");
-  app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => {
+    console.log("✅ MongoDB connected");
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
+  })
+  .catch(err => {
+    console.error("❌ MongoDB connection error:", err);
   });
-}).catch(err => {
-  console.error("❌ MongoDB connection error:", err);
-});
+
+/*
+  🔄 Optional: Keep-alive ping to prevent Railway shutdown (every 5 minutes)
+  Uncomment if you want to test this
+*/
+// setInterval(() => {
+//   fetch('https://product-safety-analyser-production.up.railway.app/test-cors')
+//     .then(res => res.json())
+//     .then(data => console.log('🔁 Keep-alive ping OK:', data))
+//     .catch(err => console.error('❌ Keep-alive ping failed:', err));
+// }, 5 * 60 * 1000);
